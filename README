@@ -1,0 +1,3 @@
+The popular web vulnerabilities scanner consist of 3 modules: Spider, Scanner and Judger.
+
+This is a different scanner which has no spider mudule, it has a fake-spider instead.
