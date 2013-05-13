@@ -11,6 +11,7 @@ from tornado.httpserver import _BadRequestException
 from tornado.options import define, options
 define("port", default=8080)
 
+
 def parse_request(self, data):
     try:
         data = native_str(data.decode('latin1'))
@@ -35,22 +36,28 @@ def parse_request(self, data):
         gen_log.info("Malformed HTTP request:%s", e)
         return
 
+
 class Applicaion(tornado.web.Application):
+
     def __init__(self):
-        handlers=
+        handlers =
             [(r"/collect", CollectHandler),
              (r"/", IndexHandler)]
         conn = pymongo.Connect("localhost", 27017)
         self.db = conn["reqs"]
         tornado.web.Application.__init__(self, handlers, debug=True)
 
+
 class CollectHandler(tornado.web.RequestHandler):
+
     def post(self):
         user_name = self.get_argument("username", "anonymous")
         internal_ip = self.get_argument("ip", "None")
         req = self.request.arguments.get("request", [""])[0]
 
+
 class IndexHandler(tornado.web.RequestHandler):
+
     def get(self):
         self.write("working!")
 
