@@ -6,7 +6,9 @@ import tornado.ioloop
 import tornado.options
 import tornado.web
 import pymongo
+import hashlib
 
+from myconfigparser import get_list
 from tornado.httpserver import _BadRequestException
 from tornado.options import define, options
 define("port", default=8080)
@@ -33,6 +35,7 @@ def parse_request(data):
             raise _BadRequestException("Malform HTTP headers")
 
         content_length = headers.get("Content-Length")
+        host = headers.get("Host")
         content_type = headers.get("Content-Type", "")
         path, sep, query = uri.partition('?')
         get_arguments = parse_qs_bytes(query, keep_blank_values=True)
@@ -40,11 +43,30 @@ def parse_request(data):
             body = data[eol2:].strip()
             httputil.parse_body_arguments(
                 content_type, body, post_arguments, files)
-            return get_arguments,post_arguments,files
-        return get_arguments,{},{}
+            return host, path, get_arguments, post_arguments, files
+        return host, path, get_arguments, {}, {}
     except _BadRequestException as e:
         gen_log.info("Malformed HTTP request:%s", e)
         return
+
+
+def gen_uniqcode(host, path, get_arg, post_arg, files):
+        MVC_PARAMS = get_list('config.ini', 'MVC Params', 'paramList')
+        args = {}
+        args.update(get_arg)
+        args.update(post_arg)
+        args.update(files)
+        keys = ''
+        for key in sorted(args.iterkeys()):
+            if key in MVC_PARAMS:
+                key += '=' + args[key][0]
+            keys += key
+            keys += '&'
+        uniq_qry = host + path + keys
+        m = hashlib.md5()
+        m.update(uniq_qry)
+        uniq_code = m.hexdigest()
+        return uniq_code
 
 
 class Applicaion(tornado.web.Application):
@@ -63,12 +85,9 @@ class CollectHandler(tornado.web.RequestHandler):
         user_name = self.get_argument("username", "anonymous")
         internal_ip = self.get_argument("ip", "None")
         req = self.request.arguments.get("request", [""])[0]
-        get_arg, post_arg, files = parse_request(req)
-        args = {}
-        args.update(get_arg)
-        args.update(post_arg)
-        args.update(files)
-        self.write(args)
+        host, path, get_arg, post_arg, files = parse_request(req)
+        uniq_code = gen_uniqcode(host, path, get_arg, post_arg, files)
+        self.write(uniq_code)
 
 
 class IndexHandler(tornado.web.RequestHandler):
