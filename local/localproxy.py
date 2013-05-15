@@ -9,8 +9,13 @@ import tornado.web
 import tornado.httpclient
 import tornado.options
 
+import myconfigparser
 from tornado.options import define, options
 define("port", default=8080)
+define("CONFIG_FILE", default="config.ini")
+parser = SafeConfigParser()
+parser.read(CONFIG_FILE)
+REMOTE_IP = parser.get('Server', 'ip')
 
 
 class ProxyHandler(tornado.web.RequestHandler):
