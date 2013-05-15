@@ -84,14 +84,17 @@ class CollectHandler(tornado.web.RequestHandler):
     @property
     def db(self):
         return self.application.db
+
     def post(self):
         user_name = self.get_argument("username", "anonymous")
         internal_ip = self.get_argument("ip", "None")
         req = self.request.arguments.get("request", [""])[0]
         host, path, get_arg, post_arg, files = parse_request(req)
         uniq_code = gen_uniqcode(host, path, get_arg, post_arg, files)
-        #self.db.insert({md5:uniq_code, domain:host,request:req})
-        self.db.requests.insert({"_id":uniq_code, "domain":host,"request":req})
+        self.db.requests.insert(
+            {"_id": uniq_code, "host": host, "request": req,
+                               "path": path, "get_arg": get_arg,
+                               "post_arg": post_arg, "files": files})
         self.write(uniq_code)
 
 
