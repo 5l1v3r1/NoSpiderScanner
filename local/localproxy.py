@@ -9,12 +9,13 @@ import tornado.web
 import tornado.httpclient
 import tornado.options
 
+from ConfigParser import SafeConfigParser
 import myconfigparser
 from tornado.options import define, options
 define("port", default=8080)
 define("CONFIG_FILE", default="config.ini")
 parser = SafeConfigParser()
-parser.read(CONFIG_FILE)
+parser.read(options.CONFIG_FILE)
 REMOTE_IP = parser.get('Server', 'ip')
 
 
@@ -44,6 +45,9 @@ class ProxyHandler(tornado.web.RequestHandler):
                                              method=self.request.method, body=self.request.body,
                                              headers=self.request.headers, follow_redirects=False,
                                              allow_nonstandard_methods=True)
+        print '##############################\n'
+        print self.request
+        print '##############################\n'
 
         client = tornado.httpclient.AsyncHTTPClient()
         try:

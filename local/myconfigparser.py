@@ -1,5 +1,5 @@
+from ConfigParser import SafeConfigParser
 def get_list(filename, section, option):
-    from ConfigParser import SafeConfigParser
     parser = SafeConfigParser()
     parser.read(filename)
     value = parser.get(section, option)
