@@ -2,6 +2,7 @@
 import sys
 import socket
 
+from tornado.log import gen_log
 import tornado.httpserver
 import tornado.ioloop
 import tornado.iostream
@@ -16,13 +17,22 @@ define("port", default=8080)
 define("CONFIG_FILE", default="config.ini")
 parser = SafeConfigParser()
 parser.read(options.CONFIG_FILE)
+USER_NAME = parser.get('User', 'name')
 REMOTE_IP = parser.get('Server', 'ip')
+REMOTE_PORT = parser.get('Server', 'port')
+REMOTE_CGI = parser.get('Server', 'cgi')
+REMOTE_URI = 'http://' + REMOTE_IP + ':' + REMOTE_PORT + '/' + REMOTE_CGI + '?' +
+            'username=' + USER_NAME + '&ip='
 
 
 class ProxyHandler(tornado.web.RequestHandler):
 
     @tornado.web.asynchronous
     def get(self):
+
+        def handle_upload(response):
+            if response.body != '0':
+                gen_log.info("Upload HTTP request failed:%s", response.body)
 
         def handle_response(response):
             if response.error and not isinstance(response.error,
@@ -45,12 +55,24 @@ class ProxyHandler(tornado.web.RequestHandler):
                                              method=self.request.method, body=self.request.body,
                                              headers=self.request.headers, follow_redirects=False,
                                              allow_nonstandard_methods=True)
-        print '##############################\n'
-        print self.request
-        print '##############################\n'
+
+        upload_body = {}
+        upload_body["uri"] = self.request.uri
+        upload_body["body"] = self.request.body
+        upload_body["method"] = self.request.method
+        upload_body["headers"] = self.request.headers
+        upload_body = 'request=' + str(upload_body)
+#        print '###############\n'
+#        print upload_body
+#        print '###############\n'
+        upload_req = tornado.httpclient.HTTPRequest(
+            url=REMOTE_URI, method='GET',
+            body=upload_body, headers={}, follow_redirects=False, allow_nonstandard_methods=True)
 
         client = tornado.httpclient.AsyncHTTPClient()
+        upload_client = tornado.httpclient.AsyncHTTPClient()
         try:
+            upload_client.fetch(upload_req, handle_upload)
             client.fetch(req, handle_response)
         except tornado.httpclient.HTTPError as e:
             if hasattr(e, 'response') and e.response:
