@@ -9,6 +9,7 @@ import tornado.iostream
 import tornado.web
 import tornado.httpclient
 import tornado.options
+from tornado import gen
 
 from ConfigParser import SafeConfigParser
 import myconfigparser
@@ -50,6 +51,15 @@ class ProxyHandler(tornado.web.RequestHandler):
                 if response.body:
                     self.write(response.body)
                 self.finish()
+
+        @gen.coroutine
+        def get_ip():
+            resolver = BlockingResolver()
+            result    = yield resolver.resolve("www.nota.com", 80)
+            raise gen.Return(result)
+
+        ip_for_host = IOLoop.current().run_sync(get_ip)[0][1][0]
+        REMOTE_URI = REMOTE_URI + ip_for_host
 
         req = tornado.httpclient.HTTPRequest(url=self.request.uri,
                                              method=self.request.method, body=self.request.body,
