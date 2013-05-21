@@ -1,13 +1,21 @@
 import socket
 import sys
 import time
+from tornado.log import gen_log
 from ConfigParser import SafeConfigParser
+import ast
+import pymongo
 
 parser = SafeConfigParser()
 parser.read("config.ini")
-AGENTPORT = parser.get('Agents', 'port')
+AGENTPORT = int(parser.get('Agent', 'port'))
+MONGOIP = parser.get('Master', 'mongo_ip')
+MONGOPORT = int(parser.get('Master', 'mongo_port'))
+DBCONN= pymongo.Connection(MONGOIP, MONGOPORT)
+REQ_DB = DBCONN.requests
+TASKSINFO = DBCONN.tasksinfo
 
-def recv_timeout(conn, timeout=2):
+def recv_timeout(conn, timeout=0.5):
     conn.setblocking(0)
     total_data=[]
     data = ''
@@ -25,8 +33,21 @@ def recv_timeout(conn, timeout=2):
             else:
                 time.sleep(0.1)
         except:
-            #logging except here
+            gen_log.info("recv_timeout failed")
     return ''.join(total_data)
+
+def scan_task(data):
+    req = ast.literal_eval(data)
+    #use objectid as taskid
+    #then insert it into taskinfo collections
+    #and the objectid would be returned by insert() function
+    #>>> db = conn.tasksinfo
+    #>>> db.collection_names()
+    #for task in db.tasksinfo.find():print task
+    req_id = req['_id']
+    task_id = TASKSINFO.tasksinfo.insert({"req_id": req_id, "vul_num": -1, "resp": ""})
+    print req['path'], task_id
+    return str(task_id)
 
 def main():
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -38,7 +59,10 @@ def main():
         connection, master_address = sock.accept()
         try:
             task = recv_timeout(connection)
-            scan_task(task)
+            task_id = scan_task(task)
+            connection.sendall(task_id)
         finally:
             connection.close()
 
+if __name__ == "__main__":
+    main()

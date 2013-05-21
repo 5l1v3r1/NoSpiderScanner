@@ -3,48 +3,49 @@ import socket
 import sys
 from myconfigparser import get_list
 from ConfigParser import SafeConfigParser
+from tornado.log import gen_log
 
 parser = SafeConfigParser()
 parser.read("config.ini")
-NUM2SEND = parser.get('master', 'num2send')
-AGENTPORT = parser.get('Agents', 'port')
+NUM2SEND = int(parser.get('master', 'num2send'))
+AGENTPORT = int(parser.get('Agents', 'port'))
 
 CONN = pymongo.Connection("localhost", 27017)
 DB = CONN["reqs"]
 
 
 def get_agent_ip():
-    pass
+    return "127.0.0.1"
 
 
-def send_tasks(tasks):
+def single_scan(tasks):
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     agent_ip = get_agent_ip()
-    agent_address(agent_ip, AGENTPORT)
+    agent_address = (agent_ip, AGENTPORT)
     sock.connect(agent_address)
     try:
         message = str(tasks)
         sock.sendall(message)
-        data = sock.recv(10)
-        if data != "0":
-            # loggin tasks here
+        taskid = sock.recv(24)
+        if len(taskid) != 24:
+            gen_log.info("Receive data from agent failed,data: %s", data)
+        return taskid
     finally:
-        # error logging here sys.stderr
         sock.close()
-    """
-    for req in docs:
-        req_id = req['_id']
-        #use objectid as taskid
-        #then insert it into taskinfo collections
-        #and the objectid would be returned by insert() function
-        task_id = DB.tasksinfo.insert("req_id": req_id, "vul_num": -1, "resp": "")
-
-"""
 
 
 def main():
-    docs = DB.requests.find({}).limit(NUM2SEND)
-    send_tasks(docs)
-    while(docs.hasNext()):
-        more = docs.hasNext()
+    docs = DB.requests.find({})
+    for doc in docs:
+        print doc['path']
+        single_scan(doc)
+#    docs = DB.requests.find({}).limit(NUM2SEND)
+#    for doc in docs:
+#        print doc['path']
+#        single_scan(doc)
+#    while(docs.hasNext()):
+#        more = docs.hasNext()
 # do something with more
+
+if __name__ == "__main__":
+    main()
