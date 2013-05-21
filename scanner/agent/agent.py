@@ -5,6 +5,7 @@ from tornado.log import gen_log
 from ConfigParser import SafeConfigParser
 import ast
 import pymongo
+import datetime
 
 parser = SafeConfigParser()
 parser.read("config.ini")
@@ -45,7 +46,7 @@ def scan_task(data):
     #>>> db.collection_names()
     #for task in db.tasksinfo.find():print task
     req_id = req['_id']
-    task_id = TASKSINFO.tasksinfo.insert({"req_id": req_id, "vul_num": -1, "resp": ""})
+    task_id = TASKSINFO.tasksinfo.insert({"req_id": req_id, "vul_num": -1, "resp": "", "start_time":datetime.datetime.utcnow()})
     print req['path'], task_id
     return str(task_id)
 

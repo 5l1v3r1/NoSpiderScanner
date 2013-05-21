@@ -8,6 +8,7 @@ import tornado.web
 import pymongo
 import hashlib
 import ast
+import datetime
 
 from myconfigparser import get_list
 from tornado.httpserver import _BadRequestException
@@ -72,7 +73,7 @@ class CollectHandler(tornado.web.RequestHandler):
         self.db.requests.insert(
             {"_id": uniq_code, "host": host, "headers": headers,
                                "path": path, "get_arg": get_arg,
-                               "post_arg": post_arg})
+                               "post_arg": post_arg, "create_time": datetime.datetime.utcnow()})
         self.write(uniq_code)
 
 
