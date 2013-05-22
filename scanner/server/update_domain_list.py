@@ -1,17 +1,20 @@
-# since update the domain info everytime the request comming is expense
-#just create a crontab task to update the domain every day.
-#find the intersection of new hosts and old host, then insert the intersection
+import pymongo
+from ConfigParser import SafeConfigParser
+from datetime import datetime, timedelta
 
-#db.tasksinfo.distinct('host')
-#from datetime import datetime, timedelta
-#yesterday = datetime.now() - timedelta(days=1)
-#db.requests.find({"create_time":{"$gt":datetime.datetime(2013,5,20)}}).distinct("host")
-#today_hosts = db.requests.find({"create_time":{"$gt":yesterday}}).distinct("host")
-#old_hosts = db.hosts.distinct("hosts")
-#new_hosts = intersect(today_hosts, old_hosts)
-#if len(new_hosts)>0:for ...
+parser = SafeConfigParser()
+parser.read("config.ini")
+MONGOIP = parser.get('Mongo', 'mongo_ip')
+MONGOPORT = int(parser.get('Mongo', 'mongo_port'))
 
-def intersect(a, b):
-    return list(set(a) & set(b))
+CONN= pymongo.Connection(MONGOIP, MONGOPORT)
+DB = CONN["reqs"]
+DB.domains.ensure_index('domain', unique=True, dropDups=True)
 
+yesterday = datetime.now() - timedelta(days=1)
+for domain in DB.requests.find({"create_time":{"$gt":yesterday}}).distinct("host"):
+    DB.domains.insert({'domain':domain})
 
+print 'Domain list:\n'
+for domain in DB.domains.find():
+    print domain

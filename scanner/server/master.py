@@ -7,8 +7,8 @@ from tornado.log import gen_log
 
 parser = SafeConfigParser()
 parser.read("config.ini")
-NUM2SEND = int(parser.get('master', 'num2send'))
-AGENTPORT = int(parser.get('Agents', 'port'))
+NUM2SEND = int(parser.get('Master', 'num2send'))
+AGENTPORT = int(parser.get('Agent', 'port'))
 
 CONN = pymongo.Connection("localhost", 27017)
 DB = CONN["reqs"]
